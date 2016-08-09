@@ -53,5 +53,10 @@ if 'countries' in tree and 'scoring' in tree:
     tree['scoring']['countries'] = tree['countries']
     del tree['countries']
     
+newScoring = []
+newScoring.append(tree['scoring']);
+tree['scoring'] = newScoring;
+    
+    
 with open('../2030-watch-datasets/online/C_prevalence_of_obesity_WHO_2014.json', 'wb') as outfile:
     json.dump(tree, outfile, sort_keys=True, indent=4)
