@@ -52,6 +52,9 @@ if 'source' in tree and 'scoring' in tree:
 if 'countries' in tree and 'scoring' in tree:
     tree['scoring']['countries'] = tree['countries']
     del tree['countries']
+if 'sdg' in tree['target']:
+    tree['sdg'] = [tree['target']['sdg']]
+    del tree['target']['sdg']
     
 newScoring = []
 newScoring.append(tree['scoring']);
