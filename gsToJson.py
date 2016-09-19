@@ -2,7 +2,7 @@ import unicodecsv as csv
 import json
 import urllib
 
-csvreader = csv.reader(urllib.urlopen('https://docs.google.com/spreadsheets/d/17yh8YFLWNkWskYIKn_96Y7bWeBFaiNj8o6pRexVHbFM/pub?output=csv'))
+csvreader = csv.reader(open('../2030-watch.de/_data/datasets/online/C_prevalence_of_obesity_WHO_2014.csv', 'rb'))
 
 last_value = None
 
@@ -33,8 +33,9 @@ for row in csvreader:
         if root not in tree:
             tree[root] = {}
             
-        tree[root][child] = getValueGeneric(row[1])
-    elif row[1] != '' and last_value != 'countries':
+        if (len(row) > 1):
+            tree[root][child] = getValueGeneric(row[1])
+    elif (len(row) > 1) and (row[1] != '') and (last_value != 'countries'):
         tree[this_value] = row[1]
         
     if last_value == 'countries': #Although country names are child elements, they aren't formatted as such
