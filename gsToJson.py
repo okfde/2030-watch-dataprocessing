@@ -22,6 +22,9 @@ SCOPES = 'https://www.googleapis.com/auth/drive'
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'Drive API Python Quickstart'
 
+rootpath = '../2030-watch.de/_data/datasets/online/'
+rootpathstatic = '../2030-watch.de/datastatic/datasets/online/'
+
 def getValueGeneric(stringvalue):
     try:
         val = int(stringvalue)
@@ -88,23 +91,33 @@ def get_csv_data(service, folder_id):
         files_resource = service.files().get(fileId=item['id']).execute()
         filedata['name'] = files_resource['title']
         if files_resource['mimeType'] == u"application/vnd.google-apps.spreadsheet":
-          files_resource = service.files().export(fileId=item['id'], mimeType="text/csv", **param)
-          resp, content = service._http.request(files_resource.uri)
-          if resp.status == 200:
-            print 'Got ' + filedata['name']
-            filedata['csv'] = content
-            allcsvs.append(filedata)
-          else:
-            print 'An error occurred: %s getting %s - retrying in 5s' % (resp, filedata['name'])
-            sleep(5)
+          for format in ('text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.oasis.opendocument.spreadsheet'):
+            files_resource = service.files().export(fileId=item['id'], mimeType=format, **param)
             resp, content = service._http.request(files_resource.uri)
             if resp.status == 200:
-              print 'Got ' + filedata['name'] + " on 2nd attempt"
-              filedata['csv'] = content
-              allcsvs.append(filedata)
+              print 'Got the file ' + filedata['name'] + ' as ' + format
+              
+              if format == 'text/csv':
+                filedata['csv'] = content
+                extension = '.csv'
+                allcsvs.append(filedata)
+              elif format == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+                extension = '.xlsx'
+              elif format == 'application/vnd.oasis.opendocument.spreadsheet':
+                extension = '.ods'
+                
+              namerootparts = filedata['name'].split('.')[0:-1]
+              
+              if len(namerootparts) == 0:
+                filedata['nameroot'] = filedata['name']
+              else:
+                filedata['nameroot'] = ''.join(namerootparts)
+              
+              with file(rootpathstatic + filedata['nameroot'] + extension, 'wb') as outputfile:
+                print 'Writing ' + rootpath + filedata['nameroot'] + extension
+                outputfile.write(content)
             else:
-              print 'An error occurred: %s getting %s - giving up' % (resp, filedata['name'])
-          
+              print 'An error occurred: %s getting %s' % (resp, filedata['name'])
         
       page_token = children.get('nextPageToken')
       if page_token == None:
@@ -127,46 +140,69 @@ def main():
     csvs = get_csv_data(service, "0B06K0pSAyW1gMi11dk1tdUp6Ylk")
     
     for csvdata in csvs:
+        print 'Processing ' + csvdata['name']
         csvreader = csv.reader(StringIO.StringIO(csvdata['csv']))
         last_value = None
         tree = {}
                 
-        for row in csvreader:
-            if row[0] == '': continue
-            
+        for row in csvreader:            
             this_value = row[0]
         
             if '$' in this_value: #Standard way of showing child elements, but not sub-child
                 parts = this_value.split('$')
                 root = parts[0]
-                child = parts[1]
+                child = parts[-1]
+                midchild = None
+                if len(parts) == 3: #Happens in a couple of places
+                    midchild = parts[1]
                 
                 if root not in tree:
                     tree[root] = {}
+                if (midchild != None) and (midchild not in tree[root]):
+                    tree[root][midchild] = {}
+                        
                     
                 if (len(row) > 1):
-                    tree[root][child] = getValueGeneric(row[1])
+                    if (child == 'rating'):
+                        rating_parts = row[1].split(',')
+                        tree[root][child] = []
+                        for rpart in rating_parts:
+                            tree[root][child].append(getValueGeneric(rpart))
+                    else:
+                        if midchild == None:
+                            tree[root][child] = getValueGeneric(row[1])
+                        else:
+                            tree[root][midchild][child] = getValueGeneric(row[1])
             elif (len(row) > 1) and (row[1] != '') and (last_value != 'countries'):
-                tree[this_value] = row[1]
+                tree[this_value] = getValueGeneric(row[1])
                 
             omitlastvalue = False
             if last_value == 'countries': #Although country names are child elements, they aren't formatted as such
-                if 'countries' not in tree:
-                    tree['countries'] = []
+                if 'scores' not in tree:
+                    tree['scores'] = []
+                    tree['scores'].append({'year': 'unknown'})
+                    tree['scores'][0]['countries'] = []
                 if row[0].strip() != "":
                     valueparts = row[1].split(' ')
-                    tree['countries'].append({'name': row[0], 'value': getValueGeneric(valueparts[0])}) #Remove things like range
+                    # Note this script currently only copes with one year
+                    tree['scores'][0]['countries'].append({'name': row[0], 'value': getValueGeneric(valueparts[0])}) #Remove things like range
                 else:
+                    try:
+                        tree['scores'][0]['year'] = int(row[1]) #Should be a year
+                    except:
+                        pass #Stick with unknown
                     omitlastvalue = True #Here we have a line of years we want to ignore
             else: #Clamp last_value to countries
                 if not omitlastvalue:
                     last_value = row[0]
                     
-        if 'countries' in tree and 'scoring' in tree:
-            tree['scoring']['countries'] = tree['countries']
-            del tree['countries']
+        if 'scores' in tree and 'scoring' in tree:
+            tree['scoring']['scores'] = tree['scores']
+            del tree['scores']
             
-        with open('../2030-watch.de/_data/datasets/online/' + csvdata['name'][0:-4] + '.json', 'wb') as outfile:
+        jsonfilename = rootpath + csvdata['nameroot'] + '.json'
+        with open(jsonfilename, 'wb') as outfile:
+            print 'Writing ' + jsonfilename
             json.dump(tree, outfile, sort_keys=True, indent=4)
     
 
