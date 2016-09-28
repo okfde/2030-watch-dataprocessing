@@ -4,9 +4,10 @@ import urllib
 import os
 from collections import OrderedDict
 from jsonmerge import merge
+from pprint import pprint
 
 #http://stackoverflow.com/questions/30539679/python-read-several-json-files-from-a-folder
-path_to_json = '../2030-watch.de/_data/datasets/online/'
+path_to_json = '../2030-watch.de/temp/'
 json_files = [pos_json for pos_json in os.listdir(path_to_json) if pos_json.endswith('.json')]
 
 schema = {
@@ -17,9 +18,14 @@ schema = {
         u'en': u''
     },
     u'long_indicator_description': {
-        u'de': u'',
-        u'en': u'',
-        u'baseunit': u'',
+        u'de': {
+            u'text': u'',
+            u'baseunit': u''
+        },
+        u'en': {
+            u'text': u'',
+            u'baseunit': u''
+        },
     },
     u'original_indicator_code': u'',
     u'original_title': u'',
@@ -27,6 +33,7 @@ schema = {
     u'target': {
         u'type': u'',
         u'value': u'',
+        u'baseunit': u'',
         u'rating': [],
         u'explanation': {
             u'de': u'',
@@ -57,7 +64,7 @@ schema = {
 
 for filename in json_files:
     
-    #if filename != "D_Governance_Financial_Secrecy_Index_TaxJusticeNetwork_2015.json": continue
+    #if filename != "D_CleanTech_Innovation_Potential_2014.json": continue
     
     newname = filename.split('.')[0] + '.csv'
     
@@ -83,13 +90,28 @@ for filename in json_files:
         jsondata['source'] = jsondata['scoring'][0]['source']
         del jsondata['scoring'][0]['source']
         
+    new_long_indicator_description = {}
+    
+    new_long_indicator_description[u'de'] = {}
+    new_long_indicator_description[u'en'] = {}
+    new_long_indicator_description[u'de'][u'text'] = jsondata[u'long_indicator_description'][u'de']
+    new_long_indicator_description[u'en'][u'text'] = jsondata[u'long_indicator_description'][u'en']
+    
+    jsondata['long_indicator_description'] = new_long_indicator_description
+        
     if ('baseunit' in jsondata):
-        jsondata['long_indicator_description']['baseunit'] = jsondata['baseunit']
+        jsondata['long_indicator_description']['de'][u'baseunit'] = jsondata['baseunit']
+        jsondata['long_indicator_description']['en'][u'baseunit'] = ''
         del jsondata['baseunit']
         
     if ('sdg' in jsondata['target']):
         jsondata['sdg'] = jsondata['target']['sdg']
         del jsondata['target']['sdg']
+        
+    if ('explanation' in jsondata['target'] and type(jsondata['target']['explanation']) == str):
+        backup_string = jsondata['target']['explanation']
+        jsondata['target']['explanation'] = {}
+        jsondata['target']['explanation']['de'] = backup_string 
         
     if type(jsondata['sdg']) == list:
         jsondata['sdg'] = jsondata['sdg'][0]
@@ -101,9 +123,11 @@ for filename in json_files:
     if ('ministerial_responsibility' in jsondata):
         jsondata['target']['ministerial_responsibility'] = jsondata['ministerial_responsibility'][0]
         del jsondata['ministerial_responsibility']
+        
+    
     
     jsondata_uo = merge(schema, jsondata)
-    
+
     jsondata = OrderedDict()
     
     for copykey in ('sponsor', 'original_title', 'original_indicator_code', 'title', 'sdg', 'short_indicator_description', 'long_indicator_description', 'target', 'scoring', 'source'):
@@ -126,7 +150,13 @@ for filename in json_files:
     countries = []
     
     for key in jsondata:
-        if key == 'scoring':
+        if key == 'long_indicator_description':
+            csvwriter.writerow(['long_indicator_description',])
+            csvwriter.writerow([key+'$de$text', jsondata[key]['de']['text']])
+            csvwriter.writerow([key+'$de$baseunit', jsondata[key]['de']['baseunit']])
+            csvwriter.writerow([key+'$en$text', jsondata[key]['en']['text']])
+            csvwriter.writerow([key+'$en$baseunit', jsondata[key]['en']['baseunit']])
+        elif key == 'scoring':
             csvwriter.writerow(['scoring',])
             actualdict = jsondata[key][0] #wrapped in array
             for scoringkey in actualdict:
@@ -169,12 +199,11 @@ for filename in json_files:
                     #print "converted to " + tagsastext
                 elif subkey == 'explanation':
                     if type(jsondata[key][subkey]) == dict:
-                        if 'de' in jsondata[key][subkey]:
-                            csvwriter.writerow([key+'$'+subkey+'$de', jsondata[key][subkey]['de']])
-                        if 'en' in jsondata[key][subkey]:
-                            csvwriter.writerow([key+'$'+subkey+'$en', jsondata[key][subkey]['en']])
+                        csvwriter.writerow([key+'$'+subkey+'$de', jsondata[key][subkey]['de']])
+                        csvwriter.writerow([key+'$'+subkey+'$en', jsondata[key][subkey]['en']])
                     elif type(jsondata[key][subkey]) == unicode:
                         csvwriter.writerow([key+'$'+subkey+'$de', jsondata[key][subkey]])
+                        csvwriter.writerow([key+'$'+subkey+'$en', ''])
                     else:
                         print "Bad key at " + key + ', ' + subkey
                 elif type(jsondata[key][subkey]) in (unicode, int):
