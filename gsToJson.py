@@ -90,6 +90,9 @@ def get_csv_data(service, folder_id):
         filedata = {}
         files_resource = service.files().get(fileId=item['id']).execute()
         filedata['name'] = files_resource['title']
+        #Use this to selectively convert a file or leave one out
+        if "Share of smokers" not in filedata['name']:
+          continue
         if files_resource['mimeType'] == u"application/vnd.google-apps.spreadsheet":
           for format in ('text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.oasis.opendocument.spreadsheet'):
             files_resource = service.files().export(fileId=item['id'], mimeType=format, **param)
@@ -109,9 +112,9 @@ def get_csv_data(service, folder_id):
               namerootparts = filedata['name'].split('.')[0:-1]
               
               if len(namerootparts) == 0:
-                filedata['nameroot'] = filedata['name']
+                filedata['nameroot'] = filedata['name'].replace(' ', '_') #Jekyll does this, so we do to
               else:
-                filedata['nameroot'] = ''.join(namerootparts)
+                filedata['nameroot'] = (''.join(namerootparts)).replace(' ', '_') #Jekyll does this, so we do to
               
               with file(rootpathstatic + filedata['nameroot'] + extension, 'wb') as outputfile:
                 print 'Writing ' + rootpath + filedata['nameroot'] + extension
@@ -200,7 +203,15 @@ def main():
             tree['scoring']['scores'] = tree['scores']
             del tree['scores']
             
-        jsonfilename = rootpath + csvdata['nameroot'] + '.json'
+        if 'title_German' in tree:
+            tree['title'] = tree['title_German']
+            del tree['title_German']
+            
+        if 'maintainer' in tree['source']:
+            tree['sponsor'] = tree['source']['maintainer']
+            del tree['source']['maintainer']
+            
+        jsonfilename = rootpath + csvdata['nameroot'].replace(' ', '_') + '.json' #Conform to Jekyll's renaming of the filename
         with open(jsonfilename, 'wb') as outfile:
             print 'Writing ' + jsonfilename
             json.dump(tree, outfile, sort_keys=True, indent=4)
