@@ -167,7 +167,7 @@ def main():
                         
                     
                 if (len(row) > 1):
-                    if (child == 'rating'):
+                    if (child in ('rating', 'other_relevant_SDGs')):
                         rating_parts = row[1].split(',')
                         tree[root][child] = []
                         for rpart in rating_parts:
