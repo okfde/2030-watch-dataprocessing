@@ -91,7 +91,7 @@ def get_csv_data(service, folder_id):
         files_resource = service.files().get(fileId=item['id']).execute()
         filedata['name'] = files_resource['title']
         #Use this to selectively convert a file or leave one out
-        if "Share of smokers" not in filedata['name']:
+        if "withdrawal" not in filedata['name']:
           continue
         if files_resource['mimeType'] == u"application/vnd.google-apps.spreadsheet":
           for format in ('text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.oasis.opendocument.spreadsheet'):
@@ -140,7 +140,8 @@ def main():
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('drive', 'v2', http=http)
-    csvs = get_csv_data(service, "0B06K0pSAyW1gMi11dk1tdUp6Ylk")
+    csvs = get_csv_data(service, "0BzOn_JyF6v0yRUNreHZ5RGRwS1E")
+    #0B06K0pSAyW1gMi11dk1tdUp6Ylk")
     
     for csvdata in csvs:
         print 'Processing ' + csvdata['name']
@@ -173,6 +174,9 @@ def main():
                             tree[root][child].append(getValueGeneric(rpart))
                     else:
                         if midchild == None:
+                            #print root
+                            #print child
+                            #print row[1]
                             tree[root][child] = getValueGeneric(row[1])
                         else:
                             tree[root][midchild][child] = getValueGeneric(row[1])
