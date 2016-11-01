@@ -91,7 +91,7 @@ def get_csv_data(service, folder_id):
         files_resource = service.files().get(fileId=item['id']).execute()
         filedata['name'] = files_resource['title']
         #Use this to selectively convert a file or leave one out
-        if "withdrawal" not in filedata['name']:
+        if "Researchers" in filedata['name']:
           continue
         if files_resource['mimeType'] == u"application/vnd.google-apps.spreadsheet":
           for format in ('text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.oasis.opendocument.spreadsheet'):
@@ -171,7 +171,8 @@ def main():
                         rating_parts = row[1].split(',')
                         tree[root][child] = []
                         for rpart in rating_parts:
-                            tree[root][child].append(getValueGeneric(rpart))
+                            if rpart.strip() != "":
+                                tree[root][child].append(getValueGeneric(rpart))
                     else:
                         if midchild == None:
                             #print root
