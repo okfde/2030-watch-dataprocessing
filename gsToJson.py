@@ -6,6 +6,7 @@ import StringIO
 
 from apiclient import discovery, errors
 import oauth2client
+from oauth2client.service_account import ServiceAccountCredentials
 from oauth2client import client
 from oauth2client import tools
 from time import sleep
@@ -19,6 +20,7 @@ except ImportError:
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/drive-python-quickstart.json
 SCOPES = 'https://www.googleapis.com/auth/drive'
+SERVICE_ACCOUNT_FILE = 'service_account.json'
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'Drive API Python Quickstart'
 
@@ -65,6 +67,10 @@ def get_credentials():
         print('Storing credentials to ' + credential_path)
     return credentials
 
+def use_credentials():
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, SCOPES)
+    return credentials
+
 def get_csv_data(service, folder_id):
   """Print files belonging to a folder.
 
@@ -91,8 +97,8 @@ def get_csv_data(service, folder_id):
         files_resource = service.files().get(fileId=item['id']).execute()
         filedata['name'] = files_resource['title']
         #Use this to selectively convert a file or leave one out
-        if "SDG1_People_at_risk_of_poverty_EUROSTAT_2014" not in filedata['name']:
-          continue
+        #if "Compliance_with_OECD-FATF_recommendations_on_due_diligence" not in filedata['name']:
+        #  continue
         if files_resource['mimeType'] == u"application/vnd.google-apps.spreadsheet":
           for format in ('text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.oasis.opendocument.spreadsheet'):
             files_resource = service.files().export(fileId=item['id'], mimeType=format, **param)
@@ -137,7 +143,7 @@ def main():
     Creates a Google Drive API service object and outputs the names and IDs
     for up to 10 files.
     """
-    credentials = get_credentials()
+    credentials = use_credentials()
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('drive', 'v2', http=http)
     csvs = get_csv_data(service, "0BzOn_JyF6v0yRUNreHZ5RGRwS1E")
