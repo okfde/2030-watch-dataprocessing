@@ -218,6 +218,11 @@ def main():
             tree['title'] = tree['title_German']
             del tree['title_German']
             
+        if 'title' in tree:
+            tree['title'] = tree['title'].replace(":", " -")
+        if 'original_title' in tree:
+            tree['original_title'] = tree['original_title'].replace(":", " -")
+            
         if 'maintainer' in tree['source']:
             tree['sponsor'] = tree['source']['maintainer']
             del tree['source']['maintainer']
