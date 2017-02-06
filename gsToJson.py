@@ -97,8 +97,8 @@ def get_csv_data(service, folder_id):
         files_resource = service.files().get(fileId=item['id']).execute()
         filedata['name'] = files_resource['title']
         #Use this to selectively convert a file or leave one out
-        #if "Compliance_with_OECD-FATF_recommendations_on_due_diligence" not in filedata['name']:
-        #  continue
+        #if "Employment_Youth" not in filedata['name']:
+        #  continue        
         if files_resource['mimeType'] == u"application/vnd.google-apps.spreadsheet":
           for format in ('text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.oasis.opendocument.spreadsheet'):
             files_resource = service.files().export(fileId=item['id'], mimeType=format, **param)
@@ -199,7 +199,7 @@ def main():
                 if row[0].strip() != "":
                     valueparts = row[1].split(' ')
                     # Note this script currently only copes with one year
-                    tree['scores'][0]['countries'].append({'name': row[0], 'value': getValueGeneric(valueparts[0])}) #Remove things like range
+                    tree['scores'][0]['countries'].append({'name': row[0].strip(), 'value': getValueGeneric(valueparts[0])}) #Remove things like range
                 else:
                     try:
                         tree['scores'][0]['year'] = int(row[1]) #Should be a year
